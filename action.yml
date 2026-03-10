@@ -26,6 +26,9 @@ inputs:
   resize_height:
     description: 'Maximum target image height'
     required: false
+  exclude_paths:
+    description: 'Newline-separated glob patterns to exclude from compression'
+    required: false
 runs:
   using: 'docker'
   image: 'docker://namoscato/github-action-tinify:v1'
