@@ -1,4 +1,4 @@
-[![ci](https://github.com/namoscato/action-tinify/actions/workflows/ci.yml/badge.svg)](https://github.com/namoscato/action-tinify/actions/workflows/ci.yml) [![docker](https://img.shields.io/docker/v/namoscato/github-action-tinify?label=docker&logoColor=%23fff&sort=semver)](https://hub.docker.com/r/namoscato/github-action-tinify)
+[![ci](https://github.com/PRNDcompany/action-tinify/actions/workflows/ci.yml/badge.svg)](https://github.com/PRNDcompany/action-tinify/actions/workflows/ci.yml) [![docker](https://img.shields.io/docker/v/namoscato/github-action-tinify?label=docker&logoColor=%23fff&sort=semver)](https://hub.docker.com/r/namoscato/github-action-tinify)
 
 # Tinify Image Action
 
@@ -32,7 +32,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.head_ref }}
-      - uses: namoscato/action-tinify@v1
+      - uses: PRNDcompany/action-tinify@v1
         with:
           api_key: ${{ secrets.TINIFY_API_KEY }}
 ```
