@@ -37,6 +37,19 @@ jobs:
           api_key: ${{ secrets.TINIFY_API_KEY }}
 ```
 
+### Excluding Paths
+
+To exclude certain paths from compression, use the `exclude_paths` input with newline-separated glob patterns:
+
+```yaml
+- uses: PRNDcompany/action-tinify@v1
+  with:
+    api_key: ${{ secrets.TINIFY_API_KEY }}
+    exclude_paths: |
+      docs/**
+      **/thumbnails/**
+```
+
 ### Events
 
 The following [webhook events](https://docs.github.com/en/actions/reference/events-that-trigger-workflows#webhook-events) are supported:
@@ -71,3 +84,4 @@ If you are sure that you want the compression commit to trigger a workflow run, 
 | `commit_message`    | Custom commit message, defaults to `Compress image(s)`                                                                                                                     |
 | `resize_width`      | Maximum target image width                                                                                                                                                 |
 | `resize_height`     | Maximum target image height                                                                                                                                                |
+| `exclude_paths`     | Newline-separated glob patterns to exclude from compression                                                                                                             |
