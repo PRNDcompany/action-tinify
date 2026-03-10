@@ -84,4 +84,4 @@ If you are sure that you want the compression commit to trigger a workflow run, 
 | `commit_message`    | Custom commit message, defaults to `Compress image(s)`                                                                                                                     |
 | `resize_width`      | Maximum target image width                                                                                                                                                 |
 | `resize_height`     | Maximum target image height                                                                                                                                                |
-| `exclude_paths`     | Newline-separated glob patterns to exclude from compression                                                                                                             |
+| `exclude_paths`     | Newline-separated glob patterns to exclude from compression                                                                                                                |

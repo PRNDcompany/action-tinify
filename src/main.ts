@@ -14,7 +14,10 @@ async function run(): Promise<void> {
 
     startGroup('Collecting affected images')
     const files = await git.getFiles()
-    const excludePatterns = getInput('exclude_paths').split('\n').map(s => s.trim()).filter(Boolean)
+    const excludePatterns = getInput('exclude_paths')
+      .split('\n')
+      .map(s => s.trim())
+      .filter(Boolean)
     const images = new Images(excludePatterns)
 
     for (const file of files) {

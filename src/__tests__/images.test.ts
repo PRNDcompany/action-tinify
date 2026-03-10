@@ -1,4 +1,7 @@
 import {beforeEach, describe, expect, jest, test} from '@jest/globals'
+import {existsSync} from 'fs'
+import {getType} from 'mime'
+import Images from '../images'
 
 jest.mock('@actions/core')
 jest.mock('mime')
@@ -9,10 +12,6 @@ jest.mock('fs', () => {
     existsSync: jest.fn()
   }
 })
-
-import {existsSync} from 'fs'
-import {getType} from 'mime'
-import Images from '../images'
 
 const mockedExistsSync = existsSync as jest.MockedFunction<typeof existsSync>
 const mockedGetType = getType as jest.MockedFunction<typeof getType>
