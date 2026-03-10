@@ -6,7 +6,7 @@ export enum Tag {
 }
 
 export default class Exif {
-  private static COMMAND = '/usr/local/bin/exiftool'
+  private static COMMAND = 'exiftool'
 
   constructor(private filename: string) {}
 

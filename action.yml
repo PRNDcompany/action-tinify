@@ -30,8 +30,8 @@ inputs:
     description: 'Newline-separated glob patterns to exclude from compression'
     required: false
 runs:
-  using: 'docker'
-  image: 'docker://namoscato/github-action-tinify:v1'
+  using: 'node20'
+  main: 'dist/index.js'
 branding:
   icon: 'image'
   color: 'green'
