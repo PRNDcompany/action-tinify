@@ -1,12 +1,14 @@
 import {debug, endGroup, getInput, setFailed, startGroup} from '@actions/core'
 import {context} from '@actions/github'
 import tinify from 'tinify'
+import {ensureExifTool} from './exif'
 import Git from './git'
 import Images from './images'
 
 async function run(): Promise<void> {
   try {
     tinify.key = getInput('api_key', {required: true})
+    await ensureExifTool()
     const git = new Git({
       token: getInput('github_token', {required: true}),
       context

@@ -16,13 +16,42 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.Tag = void 0;
+exports.ensureExifTool = exports.Tag = void 0;
+const core_1 = __nccwpck_require__(7484);
 const exec_1 = __nccwpck_require__(5236);
 var Tag;
 (function (Tag) {
     Tag["Software"] = "Software";
     Tag["XMPToolkit"] = "xmptoolkit";
 })(Tag = exports.Tag || (exports.Tag = {}));
+const EXIFTOOL_PACKAGE = 'libimage-exiftool-perl';
+function ensureExifTool() {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            yield (0, exec_1.exec)('exiftool', ['-ver']);
+            return;
+        }
+        catch (error) {
+            if (error instanceof Error && error.stack) {
+                (0, core_1.debug)(error.stack);
+            }
+        }
+        try {
+            const env = Object.assign(Object.assign({}, process.env), { DEBIAN_FRONTEND: 'noninteractive' });
+            yield (0, exec_1.exec)('sudo', ['apt-get', 'update'], { env });
+            yield (0, exec_1.exec)('sudo', ['apt-get', 'install', '-y', EXIFTOOL_PACKAGE], { env });
+            yield (0, exec_1.exec)('exiftool', ['-ver']);
+        }
+        catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            (0, core_1.warning)(`Failed to install ExifTool automatically. Continuing without auto-install: ${message}`);
+            if (error instanceof Error && error.stack) {
+                (0, core_1.debug)(error.stack);
+            }
+        }
+    });
+}
+exports.ensureExifTool = ensureExifTool;
 class Exif {
     constructor(filename) {
         this.filename = filename;
@@ -465,12 +494,14 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 const core_1 = __nccwpck_require__(7484);
 const github_1 = __nccwpck_require__(3228);
 const tinify_1 = __importDefault(__nccwpck_require__(1339));
+const exif_1 = __nccwpck_require__(2160);
 const git_1 = __importDefault(__nccwpck_require__(1147));
 const images_1 = __importDefault(__nccwpck_require__(9220));
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             tinify_1.default.key = (0, core_1.getInput)('api_key', { required: true });
+            yield (0, exif_1.ensureExifTool)();
             const git = new git_1.default({
                 token: (0, core_1.getInput)('github_token', { required: true }),
                 context: github_1.context
