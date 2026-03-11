@@ -1,4 +1,4 @@
-[![ci](https://github.com/namoscato/action-tinify/actions/workflows/ci.yml/badge.svg)](https://github.com/namoscato/action-tinify/actions/workflows/ci.yml) [![docker](https://img.shields.io/docker/v/namoscato/github-action-tinify?label=docker&logoColor=%23fff&sort=semver)](https://hub.docker.com/r/namoscato/github-action-tinify)
+[![ci](https://github.com/PRNDcompany/action-tinify/actions/workflows/ci.yml/badge.svg)](https://github.com/PRNDcompany/action-tinify/actions/workflows/ci.yml)
 
 # Tinify Image Action
 
@@ -32,9 +32,24 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.head_ref }}
-      - uses: namoscato/action-tinify@v1
+      - name: Install ExifTool
+        run: sudo apt-get update && sudo apt-get install -y libimage-exiftool-perl
+      - uses: PRNDcompany/action-tinify@v1
         with:
           api_key: ${{ secrets.TINIFY_API_KEY }}
+```
+
+### Excluding Paths
+
+To exclude certain paths from compression, use the `exclude_paths` input with newline-separated glob patterns:
+
+```yaml
+- uses: PRNDcompany/action-tinify@v1
+  with:
+    api_key: ${{ secrets.TINIFY_API_KEY }}
+    exclude_paths: |
+      docs/**
+      **/thumbnails/**
 ```
 
 ### Events
@@ -71,3 +86,4 @@ If you are sure that you want the compression commit to trigger a workflow run, 
 | `commit_message`    | Custom commit message, defaults to `Compress image(s)`                                                                                                                     |
 | `resize_width`      | Maximum target image width                                                                                                                                                 |
 | `resize_height`     | Maximum target image height                                                                                                                                                |
+| `exclude_paths`     | Newline-separated glob patterns to exclude from compression                                                                                                                |

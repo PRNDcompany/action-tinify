@@ -1,3 +1,4 @@
+import {debug, warning} from '@actions/core'
 import {exec, ExecOptions} from '@actions/exec'
 
 export enum Tag {
@@ -5,8 +6,41 @@ export enum Tag {
   XMPToolkit = 'xmptoolkit'
 }
 
+const EXIFTOOL_PACKAGE = 'libimage-exiftool-perl'
+
+export async function ensureExifTool(): Promise<void> {
+  try {
+    await exec('exiftool', ['-ver'])
+    return
+  } catch (error) {
+    if (error instanceof Error && error.stack) {
+      debug(error.stack)
+    }
+  }
+
+  try {
+    const env = {
+      ...process.env,
+      DEBIAN_FRONTEND: 'noninteractive'
+    }
+
+    await exec('sudo', ['apt-get', 'update'], {env})
+    await exec('sudo', ['apt-get', 'install', '-y', EXIFTOOL_PACKAGE], {env})
+    await exec('exiftool', ['-ver'])
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    warning(
+      `Failed to install ExifTool automatically. Continuing without auto-install: ${message}`
+    )
+
+    if (error instanceof Error && error.stack) {
+      debug(error.stack)
+    }
+  }
+}
+
 export default class Exif {
-  private static COMMAND = '/usr/local/bin/exiftool'
+  private static COMMAND = 'exiftool'
 
   constructor(private filename: string) {}
 
