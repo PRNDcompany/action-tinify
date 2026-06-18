@@ -6,7 +6,7 @@ inputs:
     description: 'Tinify API key'
     required: true
   github_token:
-    description: 'Repository GITHUB_TOKEN or personal access token secret'
+    description: 'Repository GITHUB_TOKEN or personal access token secret (requires contents:write and pull-requests:write)'
     required: false
     default: ${{ github.token }}
   commit_user_name:
@@ -18,7 +18,7 @@ inputs:
     required: false
     default: ${{ github.actor }}@users.noreply.github.com
   commit_message:
-    description: 'Custom commit message'
+    description: 'Custom commit message, also used as the pull request title'
     required: false
   resize_width:
     description: 'Maximum target image width'
