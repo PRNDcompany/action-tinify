@@ -11,7 +11,7 @@
 - filters PNG, JPEG, and WebP files in a commit or pull request
 - optionally scales images proportionally
 - sets Exif metadata to prevent duplicate compressions
-- pushes commit with compression metrics
+- opens a pull request with compression metrics
 
 ## Usage
 
@@ -28,6 +28,9 @@ on:
 jobs:
   compress:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
     steps:
       - uses: actions/checkout@v4
         with:
@@ -38,6 +41,8 @@ jobs:
         with:
           api_key: ${{ secrets.TINIFY_API_KEY }}
 ```
+
+The action commits compressed images to a `tinify/<branch>` branch and opens a pull request targeting the branch that triggered the workflow. The `contents: write` and `pull-requests: write` permissions are required.
 
 ### Excluding Paths
 
@@ -62,17 +67,19 @@ The following [webhook events](https://docs.github.com/en/actions/reference/even
 > [!IMPORTANT]  
 > In pull request contexts, [`actions/checkout`](https://github.com/actions/checkout) checkouts a _merge_ commit by default. You must checkout the pull request _HEAD_ commit by overriding the `ref` input as illustrated above and as noted in [their documentation](https://github.com/actions/checkout#Checkout-pull-request-HEAD-commit-instead-of-merge-commit).
 
-### Commit Behavior
+### Pull Request Behavior
 
-Events triggered by a default `GITHUB_TOKEN` commit [will **not** create a new workflow run](https://docs.github.com/en/actions/security-guides/automatic-token-authentication#using-the-github_token-in-a-workflow) to prevent accidental recursion.
+Compressed images are committed to a `tinify/<branch>` branch (force-pushed on each run) and a pull request is opened against the branch that triggered the workflow. If an open pull request from `tinify/<branch>` already exists, it is reused instead of creating a duplicate.
 
-If you are sure that you want the compression commit to trigger a workflow run, you can configure [`actions/checkout`](https://github.com/actions/checkout) with a [personal access token](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens):
+Pull requests opened by the default `GITHUB_TOKEN` [will **not** trigger a new workflow run](https://docs.github.com/en/actions/security-guides/automatic-token-authentication#using-the-github_token-in-a-workflow) to prevent accidental recursion.
+
+If you want the pull request to trigger further workflow runs, provide a [personal access token](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens) via the `github_token` input:
 
 ```yaml
-- uses: actions/checkout@v4
+- uses: PRNDcompany/action-tinify@v1
   with:
-    ref: ${{ github.head_ref }}
-    token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+    api_key: ${{ secrets.TINIFY_API_KEY }}
+    github_token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
 ```
 
 ### Inputs
