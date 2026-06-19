@@ -91,7 +91,7 @@ exports["default"] = Exif;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.assertUnsupportedEvent = exports.getCommitBody = exports.getCommitMessage = void 0;
+exports.assertUnsupportedEvent = exports.getCommitMessage = void 0;
 const types_1 = __nccwpck_require__(8778);
 function getCommitMessage(commit) {
     let message = commit.message;
@@ -105,12 +105,6 @@ function getCommitMessage(commit) {
     return message;
 }
 exports.getCommitMessage = getCommitMessage;
-function getCommitBody(commit) {
-    return commit.files
-        .map(image => `* [${image.getFilename()}] ${image.getCompressionSummary()}`)
-        .join('\n');
-}
-exports.getCommitBody = getCommitBody;
 function assertUnsupportedEvent(context) {
     throw new Error(`Unsupported event ${context.eventName} (currently supported events include ${types_1.supportedEvents.join(', ')})`);
 }
@@ -162,8 +156,6 @@ const exec_1 = __nccwpck_require__(5236);
 const github = __importStar(__nccwpck_require__(3228));
 const functions_1 = __nccwpck_require__(1914);
 const types_1 = __nccwpck_require__(8778);
-/** Prefix for the branch that holds the compression commit */
-const HEAD_BRANCH_PREFIX = 'tinify';
 class Git {
     constructor({ token, context }) {
         this.octokit = github.getOctokit(token);
@@ -196,27 +188,33 @@ class Git {
     }
     commit(commit) {
         return __awaiter(this, void 0, void 0, function* () {
-            const baseBranch = this.getBaseBranch();
-            const headBranch = `${HEAD_BRANCH_PREFIX}/${baseBranch}`;
-            (0, core_1.info)('Configuring git');
-            yield (0, exec_1.exec)('git', ['config', 'user.name', commit.userName]);
-            yield (0, exec_1.exec)('git', ['config', 'user.email', commit.userEmail]);
-            (0, core_1.info)(`Creating branch ${headBranch}`);
-            yield (0, exec_1.exec)('git', ['checkout', '-B', headBranch]);
+            (0, core_1.info)('Detecting detached state');
+            if ((0, types_1.isPullRequestContext)(this.context) && (yield this.isDetached())) {
+                (0, core_1.info)('Checking out branch from detached state');
+                yield (0, exec_1.exec)('git', [
+                    'checkout',
+                    '-b',
+                    this.context.payload.pull_request.head.ref
+                ]);
+            }
             (0, core_1.info)('Adding modified images');
             yield (0, exec_1.exec)('git', [
                 'add',
                 ...commit.files.map(image => image.getFilename())
             ]);
+            (0, core_1.info)('Configuring git');
+            yield (0, exec_1.exec)('git', ['config', 'user.name', commit.userName]);
+            yield (0, exec_1.exec)('git', ['config', 'user.email', commit.userEmail]);
             (0, core_1.info)('Create commit');
             yield (0, exec_1.exec)('git', [
                 'commit',
                 `--message=${(0, functions_1.getCommitMessage)(commit)}`,
-                `--message=${(0, functions_1.getCommitBody)(commit)}`
+                `--message=${commit.files
+                    .map(image => `* [${image.getFilename()}] ${image.getCompressionSummary()}`)
+                    .join('\n')}`
             ]);
-            (0, core_1.info)(`Pushing branch ${headBranch}`);
-            yield (0, exec_1.exec)('git', ['push', '--force', 'origin', headBranch]);
-            yield this.createPullRequest({ baseBranch, headBranch, commit });
+            (0, core_1.info)('Push commit');
+            yield (0, exec_1.exec)('git', ['push', 'origin']);
         });
     }
     getCommitFiles(params) {
@@ -228,25 +226,15 @@ class Git {
             return files;
         });
     }
-    /** Branch that triggered the action, used as the pull request base */
-    getBaseBranch() {
-        if ((0, types_1.isPullRequestContext)(this.context)) {
-            return this.context.payload.pull_request.head.ref;
-        }
-        return this.context.ref.replace(/^refs\/heads\//, '');
-    }
-    createPullRequest({ baseBranch, headBranch, commit }) {
+    /** @see https://stackoverflow.com/a/52222248 */
+    isDetached() {
         return __awaiter(this, void 0, void 0, function* () {
-            const head = `${this.context.repo.owner}:${headBranch}`;
-            (0, core_1.info)(`Looking for an existing pull request from ${headBranch}`);
-            const existing = yield this.octokit.rest.pulls.list(Object.assign(Object.assign({}, this.context.repo), { head, base: baseBranch, state: 'open' }));
-            if (existing.data.length) {
-                (0, core_1.info)(`Pull request already exists: ${existing.data[0].html_url}`);
-                return;
+            try {
+                return Boolean(yield (0, exec_1.exec)('git', ['symbolic-ref', '--quiet', 'HEAD']));
             }
-            (0, core_1.info)(`Creating pull request ${headBranch} -> ${baseBranch}`);
-            const { data } = yield this.octokit.rest.pulls.create(Object.assign(Object.assign({}, this.context.repo), { title: (0, functions_1.getCommitMessage)(commit), body: (0, functions_1.getCommitBody)(commit), head: headBranch, base: baseBranch }));
-            (0, core_1.info)(`Created pull request: ${data.html_url}`);
+            catch (e) {
+                return true;
+            }
         });
     }
 }

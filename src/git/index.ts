@@ -4,15 +4,8 @@ import * as github from '@actions/github'
 import {Context} from '@actions/github/lib/context'
 import {GitHub} from '@actions/github/lib/utils'
 import {Endpoints} from '@octokit/types'
-import {
-  assertUnsupportedEvent,
-  getCommitBody,
-  getCommitMessage
-} from './functions'
+import {assertUnsupportedEvent, getCommitMessage} from './functions'
 import {Commit, File, SupportedContext, isPullRequestContext} from './types'
-
-/** Prefix for the branch that holds the compression commit */
-const HEAD_BRANCH_PREFIX = 'tinify'
 
 interface Dependencies {
   readonly token: string
@@ -78,15 +71,15 @@ export default class Git {
   }
 
   async commit(commit: Commit): Promise<void> {
-    const baseBranch = this.getBaseBranch()
-    const headBranch = `${HEAD_BRANCH_PREFIX}/${baseBranch}`
-
-    info('Configuring git')
-    await exec('git', ['config', 'user.name', commit.userName])
-    await exec('git', ['config', 'user.email', commit.userEmail])
-
-    info(`Creating branch ${headBranch}`)
-    await exec('git', ['checkout', '-B', headBranch])
+    info('Detecting detached state')
+    if (isPullRequestContext(this.context) && (await this.isDetached())) {
+      info('Checking out branch from detached state')
+      await exec('git', [
+        'checkout',
+        '-b',
+        this.context.payload.pull_request.head.ref
+      ])
+    }
 
     info('Adding modified images')
     await exec('git', [
@@ -94,17 +87,23 @@ export default class Git {
       ...commit.files.map(image => image.getFilename())
     ])
 
+    info('Configuring git')
+    await exec('git', ['config', 'user.name', commit.userName])
+    await exec('git', ['config', 'user.email', commit.userEmail])
+
     info('Create commit')
     await exec('git', [
       'commit',
       `--message=${getCommitMessage(commit)}`,
-      `--message=${getCommitBody(commit)}`
+      `--message=${commit.files
+        .map(
+          image => `* [${image.getFilename()}] ${image.getCompressionSummary()}`
+        )
+        .join('\n')}`
     ])
 
-    info(`Pushing branch ${headBranch}`)
-    await exec('git', ['push', '--force', 'origin', headBranch])
-
-    await this.createPullRequest({baseBranch, headBranch, commit})
+    info('Push commit')
+    await exec('git', ['push', 'origin'])
   }
 
   private async getCommitFiles(
@@ -119,48 +118,12 @@ export default class Git {
     return files
   }
 
-  /** Branch that triggered the action, used as the pull request base */
-  private getBaseBranch(): string {
-    if (isPullRequestContext(this.context)) {
-      return this.context.payload.pull_request.head.ref
+  /** @see https://stackoverflow.com/a/52222248 */
+  private async isDetached(): Promise<boolean> {
+    try {
+      return Boolean(await exec('git', ['symbolic-ref', '--quiet', 'HEAD']))
+    } catch (e) {
+      return true
     }
-
-    return this.context.ref.replace(/^refs\/heads\//, '')
-  }
-
-  private async createPullRequest({
-    baseBranch,
-    headBranch,
-    commit
-  }: {
-    baseBranch: string
-    headBranch: string
-    commit: Commit
-  }): Promise<void> {
-    const head = `${this.context.repo.owner}:${headBranch}`
-
-    info(`Looking for an existing pull request from ${headBranch}`)
-    const existing = await this.octokit.rest.pulls.list({
-      ...this.context.repo,
-      head,
-      base: baseBranch,
-      state: 'open'
-    })
-
-    if (existing.data.length) {
-      info(`Pull request already exists: ${existing.data[0].html_url}`)
-      return
-    }
-
-    info(`Creating pull request ${headBranch} -> ${baseBranch}`)
-    const {data} = await this.octokit.rest.pulls.create({
-      ...this.context.repo,
-      title: getCommitMessage(commit),
-      body: getCommitBody(commit),
-      head: headBranch,
-      base: baseBranch
-    })
-
-    info(`Created pull request: ${data.html_url}`)
   }
 }

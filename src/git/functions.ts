@@ -17,12 +17,6 @@ export function getCommitMessage(commit: Commit): string {
   return message
 }
 
-export function getCommitBody(commit: Commit): string {
-  return commit.files
-    .map(image => `* [${image.getFilename()}] ${image.getCompressionSummary()}`)
-    .join('\n')
-}
-
 export function assertUnsupportedEvent(context: never): never {
   throw new Error(
     `Unsupported event ${
